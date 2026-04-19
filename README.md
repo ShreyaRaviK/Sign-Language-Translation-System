@@ -2,7 +2,7 @@
 
 ## Overview
 
-SIGNSIGHT is an AI-powered web application that translates sign language gestures into text and speech in real-time. The system uses computer vision techniques to detect hand movements and machine learning models to classify signs into letters, numbers, and words. It integrates with Google's Gemini API for natural language processing and text-to-speech functionality to provide audio output.
+SIGNSIGHT is an AI-powered web application that translates sign language gestures into text and speech in real-time. The system uses computer vision techniques to detect hand movements and machine learning models to classify signs into letters, numbers, and words. It integrates with an LLM for natural language processing and text-to-speech functionality to provide audio output.
 
 The application supports three main modes:
 - **Letter Mode**: Recognizes individual letters from the American Sign Language (ASL) alphabet
@@ -17,7 +17,7 @@ The application supports three main modes:
 - **Text-to-Speech**: Automatic audio output of translated text
 - **Web Interface**: User-friendly Flask-based web application
 - **Model Integration**: Uses trained PyTorch models for accurate classification
-- **LLM Enhancement**: Leverages Google Gemini API for contextual understanding
+- **LLM Enhancement**: Leverages an LLM for contextual understanding
 - **Hand Tracking**: Advanced hand landmark detection using MediaPipe
 
 ## Technologies Used
@@ -25,7 +25,7 @@ The application supports three main modes:
 - **Backend**: Python Flask
 - **Computer Vision**: OpenCV, MediaPipe
 - **Machine Learning**: PyTorch, scikit-learn
-- **AI Integration**: Google Gemini API
+- **AI Integration**: LLM
 - **Text-to-Speech**: Google Text-to-Speech (gTTS)
 - **Frontend**: HTML, CSS, JavaScript
 - **Data Processing**: NumPy, SciPy
@@ -63,9 +63,9 @@ The application supports three main modes:
 
 5. **Set up environment variables**:
    - Create a `.env` file in the root directory
-   - Add your Google Gemini API key:
+   - Add your LLM API key:
      ```
-     GEMINI_API_KEY=your_api_key_here
+     LLM_API_KEY=your_api_key_here
      ```
 
 6. **Ensure model files are in place**:
@@ -151,7 +151,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Acknowledgments
 
 - MediaPipe for hand tracking capabilities
-- Google for Gemini API and Text-to-Speech services
+- Google for LLM and Text-to-Speech services
 - PyTorch community for machine learning framework
 - OpenCV for computer vision utilities
 
