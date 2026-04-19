@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>Live Sign Language Translator</title>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/style.css">
+
+</head>
+
+<body>
+
+<div class="header">
+    <div class="logo">SIGNSIGHT</div>
+    <div class="line"></div>
+</div>
+
+<div class="page-heading-row">
+    <h1>Sign Language Translator</h1>
+    <a class="back-link" href="/">⬅ Back</a>
+</div>
+
+<h2 class="sub-heading center-sub">Live Web Cam Mode</h2>
+
+<div class="top-controls center-controls">
+
+<form method="GET" action="/live">
+
+<select name="mode" id="mode-select">
+
+<option value="letter" {% if mode == "letter" %}selected{% endif %}>Letters</option>
+<option value="number" {% if mode == "number" %}selected{% endif %}>Numbers</option>
+<option value="word" {% if mode == "word" %}selected{% endif %}>Words</option>
+
+</select>
+
+<button type="submit">Switch Mode</button>
+
+</form>
+
+</div>
+
+
+<div class="live-wrapper">
+
+<!-- CAMERA -->
+
+<div class="live-camera">
+
+<img id="video-feed" src="" alt="Live Feed">
+
+</div>
+
+
+<!-- AI PANEL -->
+
+<div class="live-panel">
+
+<h2 class="live-title">Current Prediction:</h2>
+<p id="pending-text">Waiting...</p>
+
+<div class="btn-group">
+
+<button type="button" id="clear-btn">Clear</button>
+
+</div>
+
+<h2 class="live-title">Confirmed Output:</h2>
+<p id="confirmed-text"></p>
+
+<button class="translate-btn" type="button" id="translate-btn">Translate</button>
+
+<h2 class="live-title">GEMINI Output:</h2>
+<p id="llm-output"></p>
+
+<div class="audio-player">
+
+<button id="speakerBtn" onclick="playLiveAudio()">🔊</button>
+
+<canvas id="waveCanvas" width="260" height="70"></canvas>
+
+<audio id="speechAudio"></audio>
+
+</div>
+
+</div>
+
+</div>
+
+
+<script>
+
+const mode = "{{ mode }}";
+const video = document.getElementById("video-feed");
+video.src = `/video_feed?mode=${mode}`;
+
+let lastSentence = "";
+
+function formatConfirmed(list) {
+    if (mode === "word") return list.join(" ");
+    return list.join("");
+}
+
+function updateState() {
+
+fetch(`/live_state?mode=${mode}`)
+.then(resp => resp.json())
+.then(data => {
+
+const pending = data.pending ? data.pending : "Waiting...";
+
+document.getElementById("pending-text").textContent = pending;
+
+document.getElementById("confirmed-text").textContent =
+formatConfirmed(data.confirmed || []);
+
+});
+
+}
+
+function clearOutput(){
+
+fetch("/clear_live",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({mode:mode})
+}).then(()=>updateState());
+
+}
+
+document.getElementById("clear-btn").onclick=()=>clearOutput();
+
+setInterval(updateState,200);
+updateState();
+
+document.getElementById("translate-btn").addEventListener("click",()=>{
+
+fetch("/translate_live",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({mode:mode})
+})
+
+.then(resp=>resp.json())
+.then(data=>{
+
+const sentence=data.sentence||"";
+const outputText = data.gemini_error
+? `GEMINI Error: ${data.gemini_error}`
+: (sentence ? `GEMINI Output: ${sentence}` : "GEMINI Output: (empty response)");
+document.getElementById("llm-output").textContent=outputText;
+
+if(data.audio && sentence!==lastSentence){
+
+lastSentence=sentence;
+
+const audioElement = document.getElementById("speechAudio");
+
+audioElement.src = data.audio;
+playLiveAudio();
+
+}
+
+});
+
+});
+
+const audioElement = document.getElementById("speechAudio");
+const canvas = document.getElementById("waveCanvas");
+const ctx = canvas.getContext("2d");
+
+let audioCtx;
+let analyser;
+let source;
+let dataArray;
+
+function initWave(){
+
+if(!audioCtx){
+
+audioCtx = new AudioContext();
+
+source = audioCtx.createMediaElementSource(audioElement);
+
+analyser = audioCtx.createAnalyser();
+analyser.fftSize = 256;
+
+source.connect(analyser);
+analyser.connect(audioCtx.destination);
+
+dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+drawWave();
+
+}
+
+}
+
+function drawWave(){
+
+requestAnimationFrame(drawWave);
+
+analyser.getByteTimeDomainData(dataArray);
+
+ctx.clearRect(0,0,canvas.width,canvas.height);
+
+ctx.lineWidth = 2;
+ctx.strokeStyle = "#ff0077";
+ctx.beginPath();
+
+let sliceWidth = canvas.width / dataArray.length;
+let x = 0;
+
+for(let i=0;i<dataArray.length;i++){
+
+let v = dataArray[i] / 128.0;
+let y = v * canvas.height / 2;
+
+if(i===0){
+ctx.moveTo(x,y);
+}else{
+ctx.lineTo(x,y);
+}
+
+x += sliceWidth;
+
+}
+
+ctx.lineTo(canvas.width,canvas.height/2);
+ctx.stroke();
+
+}
+
+function playLiveAudio(){
+
+if(audioElement.src){
+
+initWave();
+audioElement.play();
+
+}
+
+}
+
+</script>
+
+</body>
+</html>
