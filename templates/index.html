@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<title>Sign Language Translator</title>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/style.css">
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body>
+
+<div class="header">
+    <div class="logo">SIGNSIGHT</div>
+    <div class="line"></div>
+</div>
+
+<div class="hero">
+
+<div class="hero-text">
+
+<h1>SIGN LANGUAGE TRANSLATOR</h1>
+
+<p class="tagline">
+Breaking communication barriers with AI-powered sign language translation.
+</p>
+
+</div>
+
+<div class="mode-container">
+
+<div class="card">
+
+<h2>Video Mode</h2>
+
+<form method="POST" enctype="multipart/form-data">
+
+<select name="mode">
+<option value="letter">Letters</option>
+<option value="number">Numbers</option>
+<option value="word">Words</option>
+</select>
+
+<div class="drop-zone" id="dropZone">
+<input type="file" id="videoUpload" name="video" required hidden>
+<i data-lucide="upload-cloud" style="width: 48px; height: 48px; color: var(--secondary); margin-bottom: 10px;"></i>
+<p class="drop-text">Drag &amp; drop your video file here</p>
+<p class="drop-subtext">or</p>
+<label for="videoUpload" class="browse-btn"><i data-lucide="file-search"></i> Browse File</label>
+<p class="drop-hint">MP4, MOV, AVI and common video formats supported</p>
+</div>
+
+<button type="submit"><i data-lucide="languages"></i> Translate</button>
+
+<div id="fileName"></div>
+
+</form>
+
+</div>
+
+</div>
+
+
+{% if result_text or result_list %}
+
+<div class="result-container">
+
+<!-- VIDEO PREVIEW -->
+
+{% if video_path %}
+<div class="video-preview">
+
+<video controls width="500">
+<source src="{{ video_path }}" type="video/mp4">
+</video>
+
+</div>
+{% endif %}
+
+
+<!-- RESULT -->
+
+<div class="result-box">
+
+<h2>Result</h2>
+
+{% if result_list %}
+
+<ol>
+{% for item in result_list %}
+<li>{{ item.label }} - {{ (item.confidence * 100) | round(2) }}%</li>
+{% endfor %}
+</ol>
+
+{% else %}
+
+<p>{{ result_text }}</p>
+
+{% endif %}
+
+</div>
+
+</div>
+
+{% endif %}
+
+<script>
+
+const fileInput = document.getElementById("videoUpload");
+const fileNameText = document.getElementById("fileName");
+const dropZone = document.getElementById("dropZone");
+
+function updateFileName(file) {
+    fileNameText.textContent = file ? file.name : "";
+}
+
+fileInput.addEventListener("change", function(){
+    if (this.files.length > 0) {
+        updateFileName(this.files[0]);
+    }
+});
+
+dropZone.addEventListener("dragover", (event) => {
+    event.preventDefault();
+    dropZone.classList.add("drop-zone-active");
+});
+
+dropZone.addEventListener("dragleave", () => {
+    dropZone.classList.remove("drop-zone-active");
+});
+
+dropZone.addEventListener("drop", (event) => {
+    event.preventDefault();
+    dropZone.classList.remove("drop-zone-active");
+    const files = event.dataTransfer.files;
+    if (files.length > 0) {
+        const dt = new DataTransfer();
+        dt.items.add(files[0]);
+        fileInput.files = dt.files;
+        updateFileName(files[0]);
+    }
+});
+
+lucide.createIcons();
+
+</script>
+
+</body>
+</html>

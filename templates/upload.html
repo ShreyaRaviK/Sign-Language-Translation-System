@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<title>Translation Result</title>
+<link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/style.css">
+<script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body>
+
+<div class="header">
+    <div class="logo">SIGNSIGHT</div>
+    <div class="line"></div>
+</div>
+
+<div class="page-heading-row">
+    <h1>Sign Language Translator</h1>
+    <a class="back-link" href="/"><i data-lucide="arrow-left"></i> Back to Home</a>
+</div>
+
+<h2 class="sub-heading center-sub" style="text-align: center; margin-bottom: 30px; opacity: 0.8;">Video Upload Mode</h2>
+
+<div class="result-page" style="display: flex; gap: 40px; padding: 0 60px; justify-content: center; flex-wrap: wrap;">
+
+<!-- VIDEO -->
+
+<div class="video-section" style="flex: 1; min-width: 500px; max-width: 800px;">
+
+<h2 style="margin-bottom: 20px; color: var(--secondary);"><i data-lucide="video"></i> Uploaded Video</h2>
+
+<div class="live-camera" style="width: 100%; height: auto;">
+    <video controls style="width: 100%; border-radius: 32px;">
+        <source src="{{ video_path }}" type="video/mp4">
+    </video>
+</div>
+
+</div>
+
+
+<!-- RESULT -->
+
+<div class="prediction-section" style="width: 400px; display: flex; flex-direction: column; gap: 20px;">
+
+<h2 style="color: #fff;"><i data-lucide="info"></i> Prediction</h2>
+
+<div class="panel-section">
+    {% if result_list %}
+    <div style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 16px; border-left: 4px solid var(--accent);">
+        {% for item in result_list %}
+        <p style="color: #fff; font-weight: 600;">{{ item.label }} - {{ (item.confidence * 100) | round(2) }}%</p>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+
+{% if result_text %}
+<div class="panel-section">
+    <h3 class="live-title">Detected Output</h3>
+    <p id="detected-text" style="font-size: 20px; font-weight: 600; color: #fff; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 16px;">{{ result_text }}</p>
+</div>
+
+<button class="translate-btn" type="button" id="translate-btn" style="width: 100%;"><i data-lucide="sparkles"></i> AI Translate (LLM)</button>
+
+<div class="panel-section">
+    <h3 class="live-title">LLM Output</h3>
+    <p id="llm-output" style="font-size: 20px; font-weight: 600; color: #fff; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 16px; min-height: 50px;"></p>
+</div>
+
+<div class="audio-player">
+    <button id="speakerBtn" onclick="playAudio()"><i data-lucide="volume-2"></i></button>
+    <div id="wave" class="wave hidden" style="display: flex; gap: 4px;">
+        <span style="width: 4px; height: 12px; background: var(--secondary); animation: wave 1s infinite ease-in-out;"></span>
+        <span style="width: 4px; height: 12px; background: var(--secondary); animation: wave 1s infinite ease-in-out; animation-delay: 0.2s;"></span>
+        <span style="width: 4px; height: 12px; background: var(--secondary); animation: wave 1s infinite ease-in-out; animation-delay: 0.4s;"></span>
+    </div>
+    <audio id="speechAudio"></audio>
+</div>
+{% endif %}
+
+<div style="margin-top: 20px;">
+    <a href="/" class="browse-btn" style="text-decoration: none; display: block; text-align: center;"><i data-lucide="plus-circle"></i> Upload Another</a>
+</div>
+
+</div>
+
+</div>
+
+<script>
+const audio = document.getElementById("speechAudio");
+const wave = document.getElementById("wave");
+const detectedTextEl = document.getElementById("detected-text");
+const outputEl = document.getElementById("llm-output");
+const translateBtn = document.getElementById("translate-btn");
+const videoHash = {{ video_hash | tojson | safe }};
+
+if (audio) {
+    audio.onplay = () => {
+        wave.classList.remove("hidden");
+    };
+
+    audio.onended = () => {
+        wave.classList.add("hidden");
+    };
+}
+
+function playAudio(){
+    if(!audio || !audio.src){
+        return;
+    }
+    audio.play();
+}
+
+if (translateBtn && detectedTextEl && outputEl) {
+    const cachedOutput = {{ llm_output | tojson | safe }};
+    const cachedAudio = {{ audio_path | tojson | safe }};
+
+    if (cachedOutput) {
+        outputEl.textContent = cachedOutput;
+    }
+    if (cachedAudio) {
+        audio.src = cachedAudio;
+    }
+
+    translateBtn.addEventListener("click", () => {
+        const words = detectedTextEl.textContent.trim();
+        if (!words) {
+            return;
+        }
+
+        outputEl.textContent = "Translating...";
+
+        fetch("/translate_text", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({words: words, video_hash: videoHash})
+        })
+        .then(resp => resp.json())
+        .then(data => {
+            const sentence = data.sentence || "";
+            outputEl.textContent = data.gemini_error
+                ? `GEMINI Error: ${data.gemini_error}`
+                : (sentence ? sentence : "(empty response)");
+
+            if (data.audio) {
+                audio.src = data.audio;
+                playAudio();
+            }
+        });
+    });
+}
+
+lucide.createIcons();
+</script>
+
+</body>
+</html>
